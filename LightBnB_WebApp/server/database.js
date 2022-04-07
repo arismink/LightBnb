@@ -19,6 +19,7 @@ const pool = new Pool({
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function(email) {
+
   return pool
     .query(`
       SELECT *
@@ -41,6 +42,7 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
+
   return pool
     .query(`
       SELECT *
@@ -86,7 +88,31 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+  return pool
+    .query(`
+    SELECT
+      reservations.*,
+      properties.*,
+      AVG(rating) average_rating
+  
+    FROM reservations
+    JOIN properties
+      ON properties.id = reservations.property_id
+    JOIN property_reviews
+      ON properties.id = property_reviews.property_id
+    
+    WHERE reservations.guest_id = $1
+    
+    GROUP BY properties.id, reservations.id
+    ORDER BY start_date
+    LIMIT $2
+  ;`, [guest_id, limit])
+    .then(res => {
+      return res.rows;
+    })
+    .catch(err => {
+      console.log(err.message);
+    })
 }
 exports.getAllReservations = getAllReservations;
 
