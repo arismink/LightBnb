@@ -124,13 +124,53 @@ exports.getAllReservations = getAllReservations;
  * @param {*} limit The number of results to return.
  * @return {Promise<[{}]>}  A promise to the properties.
  */
-const getAllProperties = (options, limit = 10) => {
-  const values = [limit]
+const getAllProperties = (options, limit = 20) => {
+  const queryParams = [];
+
+  let queryString = `
+    SELECT properties.*, AVG(rating) as average_rating
+
+    FROM properties
+    JOIN property_reviews ON properties.id = property_id
+    `;
+
+  if (options.city) {
+    queryParams.push(`%${options.city.substring(1)}%`); // Deal with lowercase search results
+    queryString += `AND city LIKE $${queryParams.length} `;
+  };
+
+  if (options.owner_id) {
+    queryParams.push(`${options.owner_id}`);
+    queryString += `AND owner_id = $${queryParams.length} `;
+  };
+
+  if (options.minimum_price_per_night) {
+    queryParams.push(`${options.minimum_price_per_night}`);
+    queryString += `AND cost_per_night >= $${queryParams.length} `;
+  }
+
+  if (options.maximum_price_per_night) {
+    queryParams.push(`${options.maximum_price_per_night}`);
+    queryString += `AND cost_per_night <= $${queryParams.length} `;
+  }
+
+  if (options.owner_id) {
+    queryParams.push(`${options.owner_id}`);
+    queryString += `AND owner_id = $${queryParams.length}`
+  }
+
+  queryString += `
+  GROUP BY properties.id
+  `;
+
+  queryParams.push(limit);
+  queryString += `
+    HAVING avg(rating) >= 4
+    ORDER BY cost_per_night
+    LIMIT $${queryParams.length};`
+
   return pool // return value as result of the promise. this is because in apiRoutes.js, it is chained to .then(), which can only consume a promise
-    .query(`
-      SELECT *
-      FROM properties
-      LIMIT $1;`, values)
+    .query(queryString, queryParams)
     .then(res => {
       return res.rows // return promise
     })
