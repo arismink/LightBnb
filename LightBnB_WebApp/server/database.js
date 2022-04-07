@@ -1,14 +1,14 @@
-const properties = require('./json/properties.json');
-const users = require('./json/users.json');
+const properties = require("./json/properties.json");
+const users = require("./json/users.json");
 
 // connect to DB using node-pg
-const { Pool } = require('pg');
+const { Pool } = require("pg");
 
 const pool = new Pool({
-  user: 'vagrant',
-  password: '123',
-  host: 'localhost',
-  database: 'lightbnb'
+  user: "vagrant",
+  password: "123",
+  host: "localhost",
+  database: "lightbnb",
 });
 
 /// Users
@@ -18,22 +18,24 @@ const pool = new Pool({
  * @param {String} email The email of the user.
  * @return {Promise<{}>} A promise to the user.
  */
-const getUserWithEmail = function(email) {
-
+const getUserWithEmail = function (email) {
   return pool
-    .query(`
+    .query(
+      `
       SELECT *
       FROM users
       WHERE email = $1;
-      `, [email])
-      .then(res => {
-        console.log(res.rows[0]);
-        return res.rows[0]; // return user object
-      })
-      .catch(err => {
-        console.log(err.message)
-      })
-}
+      `,
+      [email]
+    )
+    .then((res) => {
+      console.log(res.rows[0]);
+      return res.rows[0]; // return user object
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.getUserWithEmail = getUserWithEmail;
 
 /**
@@ -41,43 +43,46 @@ exports.getUserWithEmail = getUserWithEmail;
  * @param {string} id The id of the user.
  * @return {Promise<{}>} A promise to the user.
  */
-const getUserWithId = function(id) {
-
+const getUserWithId = function (id) {
   return pool
-    .query(`
+    .query(
+      `
       SELECT *
       FROM users
       WHERE id = $1;
-    `, [id])
-    .then(res => {
+    `,
+      [id]
+    )
+    .then((res) => {
       return res.rows[0];
     })
-    .catch(err => {
-      console.log(err.message)
-    })
-}
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.getUserWithId = getUserWithId;
-
 
 /**
  * Add a new user to the database.
  * @param {{name: string, password: string, email: string}} user
  * @return {Promise<{}>} A promise to the user.
  */
-const addUser =  function(user) {
-
+const addUser = function (user) {
   return pool
-    .query(`
+    .query(
+      `
       INSERT INTO users (name, email, password)
       VALUES ($1, $2, $3) RETURNING *;
-    `, [user.name, user.email, user.password])
-    .then(res => {
+    `,
+      [user.name, user.email, user.password]
+    )
+    .then((res) => {
       return res.rows[0];
     })
-    .catch(err => {
+    .catch((err) => {
       console.log(err.message);
-    })
-}
+    });
+};
 exports.addUser = addUser;
 
 /// Reservations
@@ -87,9 +92,10 @@ exports.addUser = addUser;
  * @param {string} guest_id The id of the user.
  * @return {Promise<[{}]>} A promise to the reservations.
  */
-const getAllReservations = function(guest_id, limit = 10) {
+const getAllReservations = function (guest_id, limit = 10) {
   return pool
-    .query(`
+    .query(
+      `
     SELECT
       reservations.*,
       properties.*,
@@ -106,14 +112,16 @@ const getAllReservations = function(guest_id, limit = 10) {
     GROUP BY properties.id, reservations.id
     ORDER BY start_date
     LIMIT $2
-  ;`, [guest_id, limit])
-    .then(res => {
+  ;`,
+      [guest_id, limit]
+    )
+    .then((res) => {
       return res.rows;
     })
-    .catch(err => {
+    .catch((err) => {
       console.log(err.message);
-    })
-}
+    });
+};
 exports.getAllReservations = getAllReservations;
 
 /// Properties
@@ -137,12 +145,12 @@ const getAllProperties = (options, limit = 20) => {
   if (options.city) {
     queryParams.push(`%${options.city.substring(1)}%`); // Deal with lowercase search results
     queryString += `AND city LIKE $${queryParams.length} `;
-  };
+  }
 
   if (options.owner_id) {
     queryParams.push(`${options.owner_id}`);
     queryString += `AND owner_id = $${queryParams.length} `;
-  };
+  }
 
   if (options.minimum_price_per_night) {
     queryParams.push(`${options.minimum_price_per_night}`);
@@ -156,40 +164,54 @@ const getAllProperties = (options, limit = 20) => {
 
   if (options.owner_id) {
     queryParams.push(`${options.owner_id}`);
-    queryString += `AND owner_id = $${queryParams.length}`
+    queryString += `AND owner_id = $${queryParams.length}`;
   }
 
   queryString += `
-  GROUP BY properties.id
+    GROUP BY properties.id
   `;
 
   queryParams.push(limit);
   queryString += `
     HAVING avg(rating) >= 4
     ORDER BY cost_per_night
-    LIMIT $${queryParams.length};`
+    LIMIT $${queryParams.length};`;
 
   return pool // return value as result of the promise. this is because in apiRoutes.js, it is chained to .then(), which can only consume a promise
     .query(queryString, queryParams)
-    .then(res => {
-      return res.rows // return promise
+    .then((res) => {
+      return res.rows; // return promise
     })
-    .catch(err => {
-      console.log(err.message)
-    })
+    .catch((err) => {
+      console.log(err.message);
+    });
 };
 exports.getAllProperties = getAllProperties;
-
 
 /**
  * Add a property to the database
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
-const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
-}
+const addProperty = function (property) {
+  const queryParams = [];
+  for (let param in property) {
+    queryParams.push(property[param]);
+  }
+  console.log(property);
+
+  console.log(queryParams);
+
+  return pool
+    .query(
+      `
+      INSERT INTO properties (title, description, number_of_bedrooms, number_of_bathrooms, parking_spaces, cost_per_night, thumbnail_photo_url, cover_photo_url, street, country, city, province, post_code, owner_id )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *;`, queryParams)
+    .then((res) => {
+      return res.rows[0];
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.addProperty = addProperty;
