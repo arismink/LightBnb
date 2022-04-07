@@ -195,18 +195,17 @@ exports.getAllProperties = getAllProperties;
  */
 const addProperty = function (property) {
   const queryParams = [];
+
+  // Push query parameters into array to prevent sql injection
   for (let param in property) {
     queryParams.push(property[param]);
   }
-  console.log(property);
-
-  console.log(queryParams);
 
   return pool
-    .query(
-      `
+    .query(`
       INSERT INTO properties (title, description, number_of_bedrooms, number_of_bathrooms, parking_spaces, cost_per_night, thumbnail_photo_url, cover_photo_url, street, country, city, province, post_code, owner_id )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *;`, queryParams)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *;
+      `, queryParams)
     .then((res) => {
       return res.rows[0];
     })
