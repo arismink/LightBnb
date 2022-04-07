@@ -1,3 +1,5 @@
+/* responsible for HTTP requests to /users/something */
+
 const bcrypt = require('bcrypt');
 
 module.exports = function(router, database) {

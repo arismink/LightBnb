@@ -1,3 +1,5 @@
+/* responsible for HTTP requests to /api/something */
+
 module.exports = function(router, database) {
 
   router.get('/properties', (req, res) => {
