@@ -140,7 +140,8 @@ const getAllProperties = (options, limit = 20) => {
 
     FROM properties
     JOIN property_reviews ON properties.id = property_id
-    `;
+    WHERE 1 = 1
+    `; // where 1 = 1 in case there are no AND conditions
 
   if (options.city) {
     queryParams.push(`%${options.city.substring(1)}%`); // Deal with lowercase search results
@@ -164,7 +165,12 @@ const getAllProperties = (options, limit = 20) => {
 
   if (options.owner_id) {
     queryParams.push(`${options.owner_id}`);
-    queryString += `AND owner_id = $${queryParams.length}`;
+    queryString += `AND owner_id = $${queryParams.length} `;
+  }
+
+  if (options.minimum_rating) {
+    queryParams.push(`${options.minimum_rating}`);
+    queryString += `HAVING AVG(RATING) >= $${queryParams.length} `;
   }
 
   queryString += `
